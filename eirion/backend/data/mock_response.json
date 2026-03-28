@@ -1,0 +1,133 @@
+{
+  "risk_summary": {
+    "risk_level": "amber",
+    "liver_index_now": 84.0,
+    "projected_drop_percent": 17.9,
+    "headline": "Moderate liver stress detected \u2014 index 84/100. Projected to decline ~18% by year 5 without changes."
+  },
+  "trajectory": [
+    {
+      "year": 0,
+      "liver_index": 84.0,
+      "optimized_liver_index": 96.0
+    },
+    {
+      "year": 1,
+      "liver_index": 81.0,
+      "optimized_liver_index": 95.0
+    },
+    {
+      "year": 2,
+      "liver_index": 78.0,
+      "optimized_liver_index": 94.0
+    },
+    {
+      "year": 3,
+      "liver_index": 75.0,
+      "optimized_liver_index": 93.0
+    },
+    {
+      "year": 4,
+      "liver_index": 72.0,
+      "optimized_liver_index": 92.0
+    },
+    {
+      "year": 5,
+      "liver_index": 69.0,
+      "optimized_liver_index": 91.0
+    }
+  ],
+  "contributions": [
+    {
+      "compound_id": "ashwagandha",
+      "name": "Ashwagandha",
+      "load": 6.0,
+      "reason": "Ashwagandha: base load 2, dose factor 2.00\u00d7, genetic factor 1.50\u00d7 \u2192 6.0 load points. Your CYP2D6 poor metabolizer status causes ~50% slower clearance.",
+      "is_protective": false
+    },
+    {
+      "compound_id": "lifestyle_high_sugar_diet",
+      "name": "High Sugar Diet",
+      "load": 5.0,
+      "reason": "At 140g/day \u2014 chronically elevated fructose increases NAFLD risk.",
+      "is_protective": false
+    },
+    {
+      "compound_id": "vitamin_d",
+      "name": "Vitamin D3",
+      "load": 2.0,
+      "reason": "Vitamin D3: base load 1, dose factor 2.00\u00d7, genetic factor 1.00\u00d7 \u2192 2.0 load points.",
+      "is_protective": false
+    },
+    {
+      "compound_id": "metformin",
+      "name": "Metformin",
+      "load": 2.0,
+      "reason": "Metformin: base load 2, dose factor 1.00\u00d7, genetic factor 1.00\u00d7 \u2192 2.0 load points.",
+      "is_protective": false
+    },
+    {
+      "compound_id": "lifestyle_poor_sleep",
+      "name": "Poor Sleep",
+      "load": 2.0,
+      "reason": "At 6.0h/night \u2014 impairs hepatic regeneration and clearance.",
+      "is_protective": false
+    },
+    {
+      "compound_id": "omega3",
+      "name": "Omega-3 Fish Oil",
+      "load": -1.0,
+      "reason": "Omega-3 Fish Oil: hepatoprotective agent \u2014 offsets 1.0 load points.",
+      "is_protective": true
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "swap_ashwagandha_rhodiola",
+      "action_type": "swap",
+      "title": "Switch Ashwagandha \u2192 Rhodiola Rosea",
+      "details": "Ashwagandha is metabolized via CYP2D6. As a poor metabolizer, you clear it ~50% slower than average, leading to withanolide accumulation and elevated hepatic load over months. Rhodiola Rosea provides similar adaptogenic benefits with a significantly lower hepatotoxicity profile and no CYP2D6 dependency.",
+      "expected_improvement": {
+        "delta_index_now": 6.0,
+        "delta_index_year5": 16.0
+      },
+      "confidence": 0.88,
+      "evidence_refs": [
+        "PharmGKB:PA166182476",
+        "CPIC:CYP2D6"
+      ]
+    },
+    {
+      "id": "reduce_sugar",
+      "action_type": "behavior_change",
+      "title": "Reduce Sugar Intake to \u226490 g/day",
+      "details": "At 140g/day, chronic dietary fructose is a primary independent driver of non-alcoholic fatty liver disease (NAFLD). Reducing below 90g/day significantly lowers hepatic de novo lipogenesis and reduces cumulative oxidative stress.",
+      "expected_improvement": {
+        "delta_index_now": 3.0,
+        "delta_index_year5": 13.0
+      },
+      "confidence": 0.92,
+      "evidence_refs": [
+        "ToxCast:NAFLD_fructose",
+        "PMID:31465498"
+      ]
+    },
+    {
+      "id": "add_nac",
+      "action_type": "add",
+      "title": "Add NAC (N-Acetyl Cysteine) 600 mg/day",
+      "details": "NAC is a precursor to glutathione \u2014 the liver's primary antioxidant defense. It directly offsets oxidative stress from CYP450 metabolism of multiple compounds in your stack. Well-tolerated at 600 mg/day with strong safety profile.",
+      "expected_improvement": {
+        "delta_index_now": 3.0,
+        "delta_index_year5": 13.0
+      },
+      "confidence": 0.85,
+      "evidence_refs": [
+        "ToxCast:NAC_hepatoprotective",
+        "PMID:16323102"
+      ]
+    }
+  ],
+  "biological_age": 39.8,
+  "polypharmacy_score": 42
+}
