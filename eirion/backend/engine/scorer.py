@@ -116,7 +116,24 @@ def compute_compound_load(
             )
             break  # Apply first matching rule only
 
-    raw_load = compound["base"] * dose_factor * genetic_multiplier
+    # [ML GNN INJECTION]
+    from .inference import predictor  # type: ignore
+    
+    if "smiles" in compound:
+        prob = predictor.predict_toxicity(compound["smiles"])
+        ml_base = float(f"{prob * 10:.2f}")
+    else:
+        prob = 0.0
+        ml_base = float(compound["base"])
+
+    if compound["protective"]:
+        base_score = float(compound["base"]) # Negative domain
+        ml_note = ""
+    else:
+        base_score = ml_base
+        ml_note = f"[ML Tox {prob*100:.0f}%] Base {base_score:.1f}. " if "smiles" in compound else ""
+
+    raw_load = base_score * dose_factor * genetic_multiplier
 
     # Build explanation
     display_name = compound["display_name"]
@@ -124,9 +141,9 @@ def compute_compound_load(
         reason = f"{display_name}: hepatoprotective agent — offsets {abs(raw_load):.1f} load points.{genetic_note}"
     else:
         reason = (
-            f"{display_name}: base load {compound['base']}, "
-            f"dose factor {dose_factor:.2f}×, "
-            f"genetic factor {genetic_multiplier:.2f}× → {raw_load:.1f} load points.{genetic_note}"
+            f"{display_name}: {ml_note}"
+            f"dose {dose_factor:.1f}×, "
+            f"genes {genetic_multiplier:.1f}× → {raw_load:.1f} load pts.{genetic_note}"
         )
 
     return raw_load, reason, compound["protective"]

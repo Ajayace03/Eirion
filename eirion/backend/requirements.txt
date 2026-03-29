@@ -9,3 +9,8 @@ pytest-asyncio
 httpx
 python-multipart
 ruff
+torch
+torch-geometric
+scikit-learn
+pandas
+rdkit

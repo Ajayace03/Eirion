@@ -26,6 +26,10 @@ async def fetch_daily_wearables():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
+    
+    # Eagerly load ML Models into memory (250MB+)
+    from engine.inference import predictor
+    
     # Schedule wearable sync daily at 8 AM UTC
     scheduler.add_job(fetch_daily_wearables, 'cron', hour=8, minute=0)
     scheduler.start()

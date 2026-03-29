@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Tuple
 # ─────────────────────────────────────────────────────────────────────────────
 LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
     "ashwagandha": {
+        "smiles": "CC1=C(C(=O)OC1C2C(CC3(C2(CC(C4C3(CCC(C4(C)C)O)C)O)C)O)C)C",
         "base": 2,
         "dose_normal": 300,
         "protective": False,
@@ -23,6 +24,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Ashwagandha",
     },
     "metformin": {
+        "smiles": "CN(C)C(=N)N=C(N)N",
         "base": 2,
         "dose_normal": 500,
         "protective": False,
@@ -30,6 +32,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Metformin",
     },
     "omega3": {
+        "smiles": "CCC=CCC=CCC=CCC=CCC=CCCCC(=O)O",
         "base": -1,
         "dose_normal": 2000,
         "protective": True,
@@ -37,6 +40,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Omega-3 Fish Oil",
     },
     "vitamin_d": {
+        "smiles": "CC(C)CCCC(C)C1CCC2C1(CCCC2=CC=C3CC(CCC3=C)O)C",
         "base": 1,
         "dose_normal": 2000,
         "protective": False,
@@ -44,6 +48,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Vitamin D3",
     },
     "nac": {
+        "smiles": "CC(=O)NC(CS)C(=O)O",
         "base": -3,
         "dose_normal": 600,
         "protective": True,
@@ -51,6 +56,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "NAC (N-Acetyl Cysteine)",
     },
     "magnesium": {
+        "smiles": "C(C(=O)O)N.C(C(=O)O)N.[Mg]",
         "base": 1,
         "dose_normal": 400,
         "protective": False,
@@ -58,6 +64,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Magnesium Glycinate",
     },
     "zinc": {
+        "smiles": "[Zn]",
         "base": 2,
         "dose_normal": 15,
         "protective": False,
@@ -65,6 +72,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Zinc",
     },
     "quercetin": {
+        "smiles": "C1=CC(=C(C=C1C2=C(C(=O)C3=C(C=C(C=C3O2)O)O)O)O)O",
         "base": 2,
         "dose_normal": 500,
         "protective": False,
@@ -72,6 +80,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Quercetin",
     },
     "berberine": {
+        "smiles": "COC1=C(C2=C(C=C1)C3=C(CC[N+]4=C3C=C5C(=C4)C=C(C(=C5)O)O)C=C2)OC",
         "base": 2,
         "dose_normal": 500,
         "protective": False,
@@ -79,6 +88,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Berberine",
     },
     "curcumin": {
+        "smiles": "COC1=C(C=CC(=C1)C=CC(=O)CC(=O)C=CC2=CC(=C(C=C2)O)OC)O",
         "base": 1,
         "dose_normal": 500,
         "protective": False,
@@ -86,6 +96,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Curcumin / Turmeric",
     },
     "coq10": {
+        "smiles": "CC1=C(C(=O)C(=C(C1=O)OC)OC)CC=C(C)CC=C(C)CC=C(C)CC=C(C)CC=C(C)CC=C(C)CC=C(C)CC=C(C)CC=C(C)C",
         "base": 1,
         "dose_normal": 200,
         "protective": False,
@@ -93,6 +104,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "CoQ10 (Ubiquinol)",
     },
     "atorvastatin": {
+        "smiles": "CC(C)C1=C(C(=C(N1CC(CC(CC(=O)O)O)O)C2=CC=C(C=C2)F)C3=CC=CC=C3)C(=O)NC4=CC=CC=C4",
         "base": 4,
         "dose_normal": 10,
         "protective": False,
@@ -100,6 +112,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Atorvastatin (Lipitor)",
     },
     "rosuvastatin": {
+        "smiles": "CC(C)C1=NC(=NC(=C1C=CC(CC(CC(=O)O)O)O)C2=CC=C(C=C2)F)N(C)S(=O)(=O)C",
         "base": 4,
         "dose_normal": 10,
         "protective": False,
@@ -107,6 +120,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Rosuvastatin (Crestor)",
     },
     "sertraline": {
+        "smiles": "CN[C@H]1CC[C@@H](C2=CC=CC=C12)C3=CC=C(C=C3Cl)Cl",
         "base": 3,
         "dose_normal": 50,
         "protective": False,
@@ -114,6 +128,7 @@ LIVER_LOAD_TABLE: Dict[str, Dict[str, Any]] = {
         "display_name": "Sertraline (Zoloft)",
     },
     "escitalopram": {
+        "smiles": "CN(C)CCCC1(C2=C(CO1)C=C(C=C2)C#N)C3=CC=C(C=C3)F",
         "base": 3,
         "dose_normal": 10,
         "protective": False,
