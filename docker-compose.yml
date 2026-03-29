@@ -1,0 +1,45 @@
+services:
+
+  # ─── Backend (FastAPI + GNN + Gemini) ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eirion_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-file:./dev.db}
+      - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173}
+    volumes:
+      # Persist SQLite database between restarts
+      - ./backend/dev.db:/app/dev.db
+      # Persist GNN model checkpoint (large — mount instead of baking into image)
+      - ./backend/eirion_gnn_best.pt:/app/eirion_gnn_best.pt:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s   # Give time for GNN model to load
+
+  # ─── Frontend (React 18 + Vite) ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eirion_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  eirion_db:

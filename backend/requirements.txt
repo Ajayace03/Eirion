@@ -1,0 +1,43 @@
+# ── Core API framework ────────────────────────────────────────────────────────
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
+python-multipart==0.0.22
+python-dotenv==1.2.2
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
+PyJWT==2.12.1
+bcrypt==5.0.0
+
+# ── Database ─────────────────────────────────────────────────────────────────
+prisma==0.15.0
+
+# ── Data validation ───────────────────────────────────────────────────────────
+pydantic==2.12.5
+pydantic[email]==2.12.5
+
+# ── Google Gemini AI ──────────────────────────────────────────────────────────
+google-genai==1.69.0
+
+# ── ML: GNN (GATv2 + PyTorch Geometric) ──────────────────────────────────────
+torch==2.11.0
+torch-geometric==2.7.0
+scikit-learn==1.7.2
+numpy==2.2.6
+scipy==1.15.3
+
+# ── Cheminformatics (SMILES → Morgan fingerprints) ────────────────────────────
+rdkit==2025.9.6
+
+# ── PDF generation (clinical report) ─────────────────────────────────────────
+reportlab==4.4.10
+pillow==12.1.1
+
+# ── Background scheduling (wearable sync cron) ────────────────────────────────
+APScheduler==3.11.2
+
+# ── Async HTTP client ─────────────────────────────────────────────────────────
+httpx==0.28.1
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+pandas==2.3.3
+joblib==1.5.3
