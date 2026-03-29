@@ -38,7 +38,7 @@ EIRION's engine computes:
 
 <div align="center">
 
-![Platform Architecture](docs/images/ARCHITECTURE.jpeg)
+![Platform Architecture](images/ARCHITECTURE.png)
 
 *End-to-end architecture: 9-step onboarding wizard → dual-engine inference → multi-organ scorecard dashboard*
 
@@ -62,7 +62,7 @@ A trained `EirionGNN` model (1.29M parameters) sits at the core of the DDI and t
 
 <div align="center">
 
-![Full Process Flow](docs/images/FULL_PROCESS.jpeg)
+![Full Process Flow](docs/images/FULL_PROCESS.png)
 
 *Data flow from patient input → GNN inference → Gemini enrichment → clinical dashboard*
 
@@ -123,7 +123,7 @@ User Input (Wizard)
 
 <div align="center">
 
-![Graph Attention Network Architecture](docs/images/GNN_Architecture.jpeg)
+![Graph Attention Network Architecture](docs/images/GNN_Architecture.png)
 
 *GATv2 message passing across the compound–gene–pathway heterogeneous knowledge graph*
 
@@ -273,10 +273,12 @@ eirion/
 │
 └── docs/
     ├── GNN_README.md              ← full GNN model documentation
+    ├── Eirion-Et.pdf     
+    ├── Eirion_highlvl_doc.docx          
     └── images/
-        ├── ARCHITECTURE.jpeg      ← system architecture diagram
-        ├── FULL_PROCESS.jpeg      ← end-to-end data flow
-        └── GNN_Architecture.jpeg  ← GATv2 message-passing diagram
+        ├── ARCHITECTURE.png      ← system architecture diagram
+        ├── FULL_PROCESS.png      ← end-to-end data flow
+        └── GNN_Architecture.png  ← GATv2 message-passing diagram
 ```
 
 ---
