@@ -60,8 +60,7 @@ export default function RiskToastTrigger({ result }: Props) {
         delay += 1200;
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result.risk_summary.risk_level]);
+  }, [result]);  // depend on the full result object — toast rules inspect contributions + polypharmacy too
 
   return null; // Pure-side-effect component
 }

@@ -36,7 +36,7 @@ export default function Step3Lifestyle() {
         <div className="space-y-3">
           <div className="flex justify-between items-end">
             <label className="text-sm font-bold text-blue-gray-700">Alcohol Intake</label>
-            <span className="text-sm font-mono text-brand-amber font-bold">{lifestyle.alcohol_units_per_week} units/wk</span>
+            <span className="text-sm font-mono text-brand-amber font-bold">{lifestyle.alcohol_drinks_per_week} drinks/wk</span>
           </div>
           <input
             type="range"
@@ -44,8 +44,8 @@ export default function Step3Lifestyle() {
             max="30"
             step="1"
             className="w-full accent-brand-amber cursor-pointer h-2 bg-blue-gray-100 rounded-lg appearance-none"
-            value={lifestyle.alcohol_units_per_week}
-            onChange={(e) => updateLifestyle({ alcohol_units_per_week: parseInt(e.target.value) })}
+            value={lifestyle.alcohol_drinks_per_week}
+            onChange={(e) => updateLifestyle({ alcohol_drinks_per_week: parseInt(e.target.value) })}
           />
           <div className="flex justify-between text-xs text-blue-gray-400 font-medium px-1">
             <span>0</span>
@@ -57,7 +57,7 @@ export default function Step3Lifestyle() {
         <div className="space-y-3">
           <div className="flex justify-between items-end">
             <label className="text-sm font-bold text-blue-gray-700">Average Sleep</label>
-            <span className="text-sm font-mono text-brand-green font-bold">{lifestyle.sleep_hours_per_night} hours/night</span>
+            <span className="text-sm font-mono text-brand-green font-bold">{lifestyle.sleep_hours_avg} hours/night</span>
           </div>
           <input
             type="range"
@@ -65,8 +65,8 @@ export default function Step3Lifestyle() {
             max="12"
             step="0.5"
             className="w-full accent-brand-green cursor-pointer h-2 bg-blue-gray-100 rounded-lg appearance-none"
-            value={lifestyle.sleep_hours_per_night}
-            onChange={(e) => updateLifestyle({ sleep_hours_per_night: parseFloat(e.target.value) })}
+            value={lifestyle.sleep_hours_avg}
+            onChange={(e) => updateLifestyle({ sleep_hours_avg: parseFloat(e.target.value) })}
           />
           <div className="flex justify-between text-xs text-blue-gray-400 font-medium px-1">
             <span>Critical &lt;5h</span>

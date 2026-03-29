@@ -1,0 +1,125 @@
+{
+  "_comment": "rSID → pharmacogenomically relevant gene → star-allele genotype → metabolizer phenotype. Source: PharmGKB + CPIC.",
+  "genes": {
+    "CYP2D6": {
+      "alleles": {
+        "rs3892097": { "TT": "*4/*4", "CT": "*1/*4", "CC": "*1/*1" },
+        "rs1065852": { "TT": "*10/*10", "CT": "*1/*10", "CC": "*1/*1" },
+        "rs5030655": { "AA": "*6/*6", "GA": "*1/*6", "GG": "*1/*1" },
+        "rs16947":   { "CC": "*2/*2", "TC": "*1/*2", "TT": "*1/*1" }
+      },
+      "diplotype_to_phenotype": {
+        "*1/*1": "normal",
+        "*1/*2": "normal",
+        "*2/*2": "normal",
+        "*1/*4": "intermediate",
+        "*1/*10": "intermediate",
+        "*4/*4": "poor",
+        "*10/*10": "poor",
+        "*4/*10": "poor",
+        "*1/*6": "intermediate",
+        "*6/*6": "poor",
+        "*1/*1x2": "ultra_rapid",
+        "*2x2/*1": "ultra_rapid"
+      }
+    },
+    "CYP2C19": {
+      "alleles": {
+        "rs4244285": { "AA": "*2/*2", "AG": "*1/*2", "GG": "*1/*1" },
+        "rs4986893": { "AA": "*3/*3", "GA": "*1/*3", "GG": "*1/*1" },
+        "rs12248560": { "TT": "*17/*17", "CT": "*1/*17", "CC": "*1/*1" }
+      },
+      "diplotype_to_phenotype": {
+        "*1/*1": "normal",
+        "*1/*2": "intermediate",
+        "*1/*3": "intermediate",
+        "*2/*2": "poor",
+        "*2/*3": "poor",
+        "*3/*3": "poor",
+        "*1/*17": "ultra_rapid",
+        "*17/*17": "ultra_rapid"
+      }
+    },
+    "CYP3A4": {
+      "alleles": {
+        "rs2242480": { "TT": "*1/*1", "CT": "*1/*1B", "CC": "*1B/*1B" }
+      },
+      "diplotype_to_phenotype": {
+        "*1/*1": "normal",
+        "*1/*1B": "normal",
+        "*1B/*1B": "intermediate",
+        "*22/*22": "poor"
+      }
+    },
+    "CYP2C9": {
+      "alleles": {
+        "rs1799853": { "TT": "*2/*2", "CT": "*1/*2", "CC": "*1/*1" },
+        "rs1057910": { "CC": "*3/*3", "AC": "*1/*3", "AA": "*1/*1" }
+      },
+      "diplotype_to_phenotype": {
+        "*1/*1": "normal",
+        "*1/*2": "intermediate",
+        "*1/*3": "intermediate",
+        "*2/*2": "poor",
+        "*2/*3": "poor",
+        "*3/*3": "poor"
+      }
+    },
+    "CYP1A2": {
+      "alleles": {
+        "rs762551": { "AA": "*1F/*1F", "AC": "*1/*1F", "CC": "*1/*1" }
+      },
+      "diplotype_to_phenotype": {
+        "*1/*1": "normal",
+        "*1/*1F": "normal",
+        "*1F/*1F": "ultra_rapid"
+      }
+    },
+    "SLCO1B1": {
+      "alleles": {
+        "rs4149056": { "CC": "reduced", "TC": "reduced", "TT": "normal" }
+      },
+      "function_notes": "SLCO1B1*5 (rs4149056 C allele) reduces hepatic uptake of statins, increasing myopathy risk. Particularly relevant for simvastatin."
+    },
+    "UGT1A1": {
+      "alleles": {
+        "rs8175347": {
+          "(TA)7/(TA)7": "poor",
+          "(TA)6/(TA)7": "intermediate",
+          "(TA)6/(TA)6": "normal"
+        }
+      },
+      "diplotype_to_phenotype": {
+        "*1/*1": "normal",
+        "*1/*28": "intermediate",
+        "*28/*28": "poor"
+      },
+      "function_notes": "UGT1A1*28 (*28/*28) significantly reduces bilirubin conjugation. Relevant for irinotecan, atazanavir, and some supplements."
+    },
+    "MTHFR": {
+      "alleles": {
+        "rs1801133": {
+          "GG": "c677t_normal",
+          "AG": "c677t_heterozygous",
+          "AA": "c677t_homozygous"
+        },
+        "rs1801131": {
+          "TT": "a1298c_normal",
+          "GT": "a1298c_heterozygous",
+          "GG": "a1298c_homozygous"
+        }
+      },
+      "function_notes": "MTHFR C677T homozygous reduces folate metabolism by ~70%, increasing homocysteine. Relevant for folate/B12 supplementation dosing."
+    }
+  },
+  "pharmacogenomically_relevant_rsids": [
+    "rs3892097", "rs1065852", "rs5030655", "rs16947",
+    "rs4244285", "rs4986893", "rs12248560",
+    "rs2242480",
+    "rs1799853", "rs1057910",
+    "rs762551",
+    "rs4149056",
+    "rs8175347",
+    "rs1801133", "rs1801131"
+  ]
+}

@@ -5,10 +5,14 @@ Integration with Oura Ring API for daily HRV and sleep metrics.
 Requires env: OURA_CLIENT_ID, OURA_CLIENT_SECRET
 """
 import os
+import logging
 import httpx
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import RedirectResponse
+from typing import Optional
 from auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -35,7 +39,7 @@ async def oura_auth_redirect():
 
 
 @router.get("/callback")
-async def oura_callback(code: str, error: str = None):
+async def oura_callback(code: str, error: Optional[str] = None):
     """
     Handles the Oura OAuth callback. Exchanges the auth code for an access token.
     Then saves the token to the user's database record.
@@ -97,11 +101,12 @@ async def sync_wearable_data(user: dict = Depends(get_current_user)):
 
         return {
             "status": "success",
-            "message": "Data syned successfully",
+            "message": "Data synced successfully",
             "metrics": {
                 "sleep_score": 85,
                 "hrv_balance": "optimal",
             }
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.error("Wearable data sync failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Wearable data sync failed.")

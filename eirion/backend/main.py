@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from routers import health, analysis, labs, billing, wearables, history, chat, export, extraction
+from routers import users as users_router
+from routers import notifications as notifications_router
 from database import connect_db, disconnect_db
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import httpx
@@ -41,7 +43,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="EIRION API",
     description="AI-Powered Precision Longevity Platform — Phase 0 Prototype",
-    version="0.1.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -56,6 +58,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router, tags=["Health"])
+app.include_router(users_router.router, prefix="/users", tags=["Auth"])
+app.include_router(notifications_router.router, prefix="/notifications", tags=["Notifications"])
 app.include_router(analysis.router, prefix="/analysis", tags=["Analysis"])
 app.include_router(labs.router, prefix="/labs", tags=["Labs"])
 app.include_router(billing.router, prefix="/billing", tags=["Billing"])

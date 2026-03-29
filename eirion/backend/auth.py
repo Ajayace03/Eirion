@@ -1,10 +1,12 @@
+from typing import Optional
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 import jwt
 import httpx
 
-security = HTTPBearer()
+# auto_error=False lets us handle missing auth gracefully in local dev
+security = HTTPBearer(auto_error=False)
 
 # Cache for Clerk's JWKS (JSON Web Key Set)
 _CLERK_JWKS = None
@@ -27,11 +29,17 @@ async def get_clerk_jwks():
             return None
     return _CLERK_JWKS
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     """
     Validates the Clerk JWT token from the Authorization header via JWKS.
     Falls back to a stub user if CLERK_SECRET_KEY is omitted for local dev.
     """
+    # No Authorization header at all
+    if credentials is None:
+        if os.getenv("CLERK_SECRET_KEY"):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        return {"user_id": "test_hackathon_user"}
+
     token = credentials.credentials
 
     # Strict mode using Clerk
@@ -52,11 +60,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             if not key:
                 raise HTTPException(status_code=401, detail="Signing key not found")
                 
+            clerk_audience = os.getenv("CLERK_AUDIENCE")
+            decode_options = {"verify_aud": bool(clerk_audience)}
+            decode_kwargs = {"audience": clerk_audience} if clerk_audience else {}
             decoded = jwt.decode(
-                token, 
-                key, 
+                token,
+                key,
                 algorithms=["RS256"],
-                options={"verify_aud": False} # Validate 'aud' depending on your Clerk config
+                options=decode_options,
+                **decode_kwargs,
             )
             return {"user_id": decoded.get("sub")}
         except jwt.ExpiredSignatureError:

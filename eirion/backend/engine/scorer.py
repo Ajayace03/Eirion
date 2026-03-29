@@ -12,11 +12,15 @@ Flow:
 import copy
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..models.request import AnalysisRequest, Genetics, Lifestyle  # type: ignore
-from ..models.response import (  # type: ignore
+from models.request import AnalysisRequest, Food, Genetics, LifestyleIntake
+from models.response import (
     AnalysisResponse,
     Contribution,
+    CompoundGeneChain,
+    DDIFlag,
     ExpectedImprovement,
+    GeneInteractionDetail,
+    OrganScore,
     Recommendation,
     RiskSummary,
     TrajectoryPoint,
@@ -26,7 +30,12 @@ from .knowledge import (  # type: ignore
     AST_THRESHOLD,
     ACTIVITY_PENALTIES,
     ALCOHOL_PENALTIES,
+    CALORIE_PENALTIES,
     DEFAULT_LOAD,
+    DIET_TYPE_MODIFIERS,
+    DIET_TYPE_REASONS,
+    FIBER_PENALTIES,
+    FOOD_RECOMMENDATION_RULES,
     GENE_DRUG_RULES,
     HIGH_RISK_TAGS,
     LAB_ELEVATION_BUMP,
@@ -34,7 +43,9 @@ from .knowledge import (  # type: ignore
     LIVER_LOAD_TABLE,
     POLYPHARMACY_BASE_PER_COMPOUND,
     POLYPHARMACY_HIGH_TAG_BONUS,
+    PROCESSED_FOOD_PENALTIES,
     RECOMMENDATION_RULES,
+    RED_MEAT_PENALTIES,
     RISK_THRESHOLDS,
     SLEEP_PENALTIES,
     STRESS_PENALTY,
@@ -117,12 +128,19 @@ def compute_compound_load(
             break  # Apply first matching rule only
 
     # [ML GNN INJECTION]
-    from .inference import predictor  # type: ignore
-    
-    if "smiles" in compound:
+    from .inference import predictor, ML_READY
+
+    if "smiles" in compound and ML_READY and predictor.rf_model is not None:
         prob = predictor.predict_toxicity(compound["smiles"])
-        ml_base = float(f"{prob * 10:.2f}")
+        # Phase 0: ML tunes the curated base by at most ±50%.
+        # Tox21 is a broad molecular toxicity model (not liver-specific); using
+        # prob*10 directly produces wildly inflated scores vs the clinically
+        # calibrated base values. This formula preserves clinical calibration
+        # while still encoding the ML signal. Full recalibration is Phase 1.
+        # prob=0 → 0.5× base  |  prob=0.5 → 1.0× base  |  prob=1 → 1.5× base
+        ml_base = float(f"{compound['base'] * (0.5 + prob):.2f}")
     else:
+        # Stub / no ML weights: use manually curated base score from knowledge table
         prob = 0.0
         ml_base = float(compound["base"])
 
@@ -153,29 +171,96 @@ def compute_compound_load(
 # Step 3 — Lifestyle Penalties
 # ─────────────────────────────────────────────────────────────────────────────
 
-def compute_lifestyle_penalties(lifestyle: Lifestyle) -> Tuple[float, Dict[str, float]]:
+def compute_lifestyle_penalties(lifestyle: LifestyleIntake) -> Tuple[float, Dict[str, float]]:
     """Returns (total_penalty, breakdown_dict). All penalties are negative numbers."""
     breakdown: Dict[str, float] = {}
 
     sugar_pen = _apply_threshold_penalties(lifestyle.sugar_g_per_day, SUGAR_PENALTIES)
     breakdown["High Sugar Diet"] = float(sugar_pen)
 
-    alcohol_pen = _apply_threshold_penalties(lifestyle.alcohol_units_per_week, ALCOHOL_PENALTIES)
+    alcohol_pen = _apply_threshold_penalties(lifestyle.alcohol_drinks_per_week, ALCOHOL_PENALTIES)
     breakdown["Alcohol Intake"] = alcohol_pen
 
-    sleep_pen = _apply_threshold_penalties(lifestyle.sleep_hours_per_night, SLEEP_PENALTIES)
+    sleep_pen = _apply_threshold_penalties(lifestyle.sleep_hours_avg, SLEEP_PENALTIES)
     breakdown["Poor Sleep"] = sleep_pen
 
-    activity_pen = ACTIVITY_PENALTIES.get(lifestyle.activity_level, 0)
-    breakdown["Sedentary Activity"] = activity_pen
+    # Activity: sedentary (<60 min/wk) = +2 penalty; very active (>=150) = -2 credit;
+    # moderate (60-149) = no change
+    if lifestyle.exercise_mins_per_week >= 150:
+        activity_pen = -2.0  # protective credit
+    elif lifestyle.exercise_mins_per_week < 60:
+        activity_pen = 2.0   # sedentary penalty
+    else:
+        activity_pen = 0.0   # moderate — neutral
+    breakdown["Activity Level"] = activity_pen
 
     stress_pen = STRESS_PENALTY if lifestyle.stress_level >= STRESS_THRESHOLD else 0
     breakdown["High Stress"] = stress_pen
+
+    env_pen = 2.0 if lifestyle.environmental_toxin_exposure >= 8 else 0.0
+    if env_pen > 0:
+        breakdown["High Toxin Exposure"] = env_pen
+    
+    processed_pen = 3.0 if lifestyle.processed_food_frequency >= 8 else 0.0
+    if processed_pen > 0:
+        breakdown["Ultra-Processed Diet"] = processed_pen
 
     total = sum(breakdown.values())
     # Remove zero-penalty entries for cleanliness
     breakdown = {k: v for k, v in breakdown.items() if v != 0}
 
+    return total, breakdown
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Step 3b — Food / Diet Penalties
+# ───────────────────────────────────────────────────────────────────────────────
+
+def compute_food_penalty(food: Optional["Food"]) -> Tuple[float, Dict[str, float]]:
+    """
+    Returns (total_penalty, breakdown_dict) for food/diet inputs.
+    Positive penalty values subtract from liver_index.
+    Negative penalty values (e.g. Mediterranean, high fiber) are protective credits.
+    """
+    if food is None:
+        return 0.0, {}
+
+    breakdown: Dict[str, float] = {}
+
+    if food.calories_per_day is not None:
+        cal_pen = _apply_threshold_penalties(food.calories_per_day, CALORIE_PENALTIES)
+        if cal_pen:
+            breakdown["Excess Caloric Intake"] = float(cal_pen)
+
+    if food.processed_food_pct is not None:
+        proc_pen = _apply_threshold_penalties(food.processed_food_pct, PROCESSED_FOOD_PENALTIES)
+        if proc_pen:
+            breakdown["Ultra-Processed Food Diet"] = float(proc_pen)
+
+    if food.red_meat_g_per_week is not None:
+        meat_pen = _apply_threshold_penalties(food.red_meat_g_per_week, RED_MEAT_PENALTIES)
+        if meat_pen:
+            breakdown["High Red Meat Intake"] = float(meat_pen)
+
+    if food.fiber_g_per_day is not None:
+        # Fiber table returns negative penalty for high fiber (protective)
+        fiber_pen = _apply_threshold_penalties(food.fiber_g_per_day, FIBER_PENALTIES)
+        if fiber_pen < 0:
+            breakdown["High Fiber Diet"] = float(fiber_pen)  # protective
+        elif fiber_pen > 0:
+            breakdown["Low Fiber Intake"] = float(fiber_pen)
+
+    if food.diet_type is not None:
+        diet_mod = DIET_TYPE_MODIFIERS.get(food.diet_type, 0.0)
+        # diet_mod > 0 means bad diet (more load) → positive penalty
+        # diet_mod < 0 means good diet (protective) → negative value (credit)
+        if diet_mod > 0:
+            breakdown[f"Diet Pattern ({food.diet_type.title()})"] = diet_mod   # harmful
+        elif diet_mod < 0:
+            breakdown[f"Diet Pattern ({food.diet_type.title()})"] = diet_mod   # protective
+
+    total = sum(breakdown.values())
+    breakdown = {k: v for k, v in breakdown.items() if v != 0}
     return total, breakdown
 
 
@@ -256,22 +341,37 @@ def generate_recommendations(
         except Exception:
             triggered = False
 
-        if triggered:
+        if triggered and not any(r.id == rule["id"] for r in recs):
             details = rule["details"]
-            # Interpolate sugar value if present
             if "{sugar_g}" in details:
                 details = details.format(sugar_g=int(request.lifestyle.sugar_g_per_day))
-
             recs.append(
                 Recommendation(
                     id=rule["id"],
                     action_type=rule["action_type"],
                     title=rule["title"],
                     details=details,
-                    expected_improvement=ExpectedImprovement(
-                        delta_index_now=0.0,  # Computed in next step
-                        delta_index_year5=0.0,
-                    ),
+                    expected_improvement=ExpectedImprovement(delta_index_now=0.0, delta_index_year5=0.0),
+                    confidence=rule["confidence"],
+                    evidence_refs=rule["evidence_refs"],
+                )
+            )
+
+    # Food recommendations
+    for rule in FOOD_RECOMMENDATION_RULES:
+        try:
+            triggered = rule["trigger"](request.food)
+        except Exception:
+            triggered = False
+
+        if triggered and not any(r.id == rule["id"] for r in recs):
+            recs.append(
+                Recommendation(
+                    id=rule["id"],
+                    action_type=rule["action_type"],
+                    title=rule["title"],
+                    details=rule["details"],
+                    expected_improvement=ExpectedImprovement(delta_index_now=0.0, delta_index_year5=0.0),
                     confidence=rule["confidence"],
                     evidence_refs=rule["evidence_refs"],
                 )
@@ -331,7 +431,7 @@ def compute_recommendation_delta(
         modified.lifestyle.sugar_g_per_day = 90.0
 
     elif rec.id == "add_nac":
-        from ..models.request import RegimenItem  # type: ignore
+        from models.request import RegimenItem
         modified.regimen.append(RegimenItem(compound_id="nac", dose_mg=600))
 
     elif rec.id.startswith("reduce_"):
@@ -389,20 +489,52 @@ def _build_contributions(
                 name=factor,
                 load=float(f"{penalty:.1f}"),
                 reason=_lifestyle_reason(factor, request.lifestyle),
-                is_protective=False,
+                is_protective=(penalty < 0),
             )
         )
 
-    return contributions, lifestyle_penalty, lifestyle_breakdown
+    # Food / diet contributions
+    food_penalty, food_breakdown = compute_food_penalty(request.food)
+    for factor, penalty in food_breakdown.items():
+        is_food_protective = penalty < 0
+        contributions.append(
+            Contribution(
+                compound_id=f"food_{factor.lower().replace(' ', '_').replace('(', '').replace(')', '')}",
+                name=factor,
+                load=float(f"{penalty:.1f}"),
+                reason=_food_reason(factor, request.food),
+                is_protective=is_food_protective,
+            )
+        )
+
+    total_non_food_penalty = lifestyle_penalty
+    return contributions, total_non_food_penalty + food_penalty, lifestyle_breakdown
 
 
-def _lifestyle_reason(factor: str, lifestyle: Lifestyle) -> str:
+def _lifestyle_reason(factor: str, lifestyle: LifestyleIntake) -> str:
     reasons = {
         "High Sugar Diet": f"At {lifestyle.sugar_g_per_day:.0f}g/day — chronically elevated fructose increases NAFLD risk.",
-        "Alcohol Intake": f"At {lifestyle.alcohol_units_per_week} units/week — exceeds hepatotoxic threshold.",
-        "Poor Sleep": f"At {lifestyle.sleep_hours_per_night}h/night — impairs hepatic regeneration and clearance.",
-        "Sedentary Activity": "Sedentary lifestyle reduces metabolic clearance of hepatic substrates.",
+        "Alcohol Intake": f"At {lifestyle.alcohol_drinks_per_week} drinks/week — exceeds hepatotoxic threshold.",
+        "Poor Sleep": f"At {lifestyle.sleep_hours_avg}h/night — impairs hepatic regeneration and clearance.",
+        "Activity Level": f"At {lifestyle.exercise_mins_per_week} mins/week of exercise.",
         "High Stress": f"Stress level {lifestyle.stress_level}/10 — elevated cortisol increases liver inflammation markers.",
+        "High Toxin Exposure": f"Reported high environmental toxin exposure (level {lifestyle.environmental_toxin_exposure}) adds direct load to detox pathways.",
+        "Ultra-Processed Diet": f"Highly processed diet patterns (frequency {lifestyle.processed_food_frequency}/10) increase oxidative stress.",
+    }
+    return reasons.get(factor, factor)
+
+
+def _food_reason(factor: str, food: Optional["Food"]) -> str:
+    if food is None:
+        return factor
+    if "Diet Pattern" in factor and food.diet_type:
+        return DIET_TYPE_REASONS.get(food.diet_type, factor)
+    reasons = {
+        "Excess Caloric Intake": f"At {food.calories_per_day:.0f} kcal/day — excess calories increase hepatic de novo lipogenesis.",
+        "Ultra-Processed Food Diet": f"At {food.processed_food_pct:.0f}% ultra-processed — AGEs and additives drive hepatic inflammation.",
+        "High Red Meat Intake": f"At {food.red_meat_g_per_week:.0f}g/week — elevated heme iron and nitrosamines stress hepatocytes.",
+        "Low Fiber Intake": f"At {food.fiber_g_per_day:.0f}g/day fiber — impairs gut-liver axis and SCFA production.",
+        "High Fiber Diet": f"At {food.fiber_g_per_day:.0f}g/day fiber — protects gut-liver axis and reduces hepatic inflammation.",
     }
     return reasons.get(factor, factor)
 
@@ -429,18 +561,24 @@ def run_liver_analysis(request: AnalysisRequest) -> AnalysisResponse:
     risk_level, decline_fraction = assign_risk_band(liver_index_now)
     trajectory = compute_trajectory(liver_index_now, decline_fraction, request.labs)
 
-    # Projected drop %
-    val = (liver_index_now - trajectory[5].liver_index) / liver_index_now * 100
-    drop_pct = float(f"{val:.1f}")
+    # Projected drop % — clamp to 0 so we never show a negative "drop"
+    raw_drop = (liver_index_now - trajectory[5].liver_index) / liver_index_now * 100
+    drop_pct = float(f"{max(0.0, raw_drop):.1f}")
 
     # Headline text
     if risk_level == "green":
         headline = f"Your liver is in good shape — index {liver_index_now:.0f}/100. Maintain your current routine."
     elif risk_level == "amber":
-        headline = (
-            f"Moderate liver stress detected — index {liver_index_now:.0f}/100. "
-            f"Projected to decline ~{drop_pct:.0f}% by year 5 without changes."
-        )
+        if drop_pct > 0:
+            headline = (
+                f"Moderate liver stress detected — index {liver_index_now:.0f}/100. "
+                f"Projected to decline ~{drop_pct:.0f}% by year 5 without changes."
+            )
+        else:
+            headline = (
+                f"Moderate liver stress detected — index {liver_index_now:.0f}/100. "
+                f"On current trajectory. Consider the recommendations below."
+            )
     else:
         headline = (
             f"Elevated liver risk — index {liver_index_now:.0f}/100. "
@@ -489,6 +627,15 @@ def run_liver_analysis(request: AnalysisRequest) -> AnalysisResponse:
     # Sort contributions: highest load first, protective items last
     contributions.sort(key=lambda c: (c.is_protective, -c.load))
 
+    # ── Phase 2: Multi-organ scoring ─────────────────────────────────────────
+    organ_scores, compound_gene_chains, ddi_flags, active_pathways = compute_multi_organ_data(
+        request, liver_index_now
+    )
+
+    # ── Phase 3: Multi-timeframe projections ─────────────────────────────────
+    from engine.projector import compute_multi_organ_projection
+    multi_organ_projection = compute_multi_organ_projection(organ_scores, request)
+
     return AnalysisResponse(
         risk_summary=risk_summary,
         trajectory=trajectory,
@@ -496,7 +643,214 @@ def run_liver_analysis(request: AnalysisRequest) -> AnalysisResponse:
         recommendations=recommendations,
         biological_age=biological_age,
         polypharmacy_score=polypharmacy_score,
+        organ_scores=organ_scores,
+        compound_gene_chains=compound_gene_chains,
+        ddi_flags=ddi_flags,
+        active_pathways=active_pathways,
+        gnn_version="rules_v1",
+        multi_organ_projection=multi_organ_projection,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-Organ Scoring (Phase 2 — Knowledge Graph Rules)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_multi_organ_data(request: AnalysisRequest, liver_index_now: float):
+    """
+    Uses the knowledge graph to produce per-organ scores, compound→gene chains,
+    and DDI flags.
+
+    Returns:
+        organ_scores: List[OrganScore]
+        compound_gene_chains: List[CompoundGeneChain]
+        ddi_flags: List[DDIFlag]
+        active_pathways: List[str]
+    """
+    from engine.graph_builder import PatientGraph
+    from engine.knowledge_graph import PATHWAY_GRAPH, COMPOUND_INTERACTIONS, build_pathway_chain, detect_ddis, get_gene_multiplier
+
+    pg = PatientGraph(request)
+    genetics_dict = pg.genetics_dict
+
+    # ── 1. Baseline organ scores (healthy person = 80/100) ─────────────────
+    organ_loads: dict = {"liver": 0.0, "kidney": 0.0, "cardiovascular": 0.0, "metabolic": 0.0}
+    organ_pathway_map: dict = {o: [] for o in organ_loads}
+
+    # ── 2. Condition-based organ penalties ────────────────────────────────
+    for cd in pg.condition_data:
+        for organ, penalty in cd["organs"].items():
+            if organ in organ_loads:
+                organ_loads[organ] += penalty
+        for pathway_id in cd["pathway_activations"]:
+            for organ in PATHWAY_GRAPH.get(pathway_id, {}).get("organs", []):
+                if organ in organ_pathway_map and pathway_id not in organ_pathway_map[organ]:
+                    organ_pathway_map[organ].append(pathway_id)
+
+    # ── 3. Compound pathway activations → organ impact ───────────────────
+    compound_gene_chains = []
+    for cd in pg.compound_data:
+        comp_id = cd["compound_id"]
+        comp_kg = COMPOUND_INTERACTIONS.get(comp_id, {})
+
+        # Gene interaction details
+        gene_details = []
+        for gi in comp_kg.get("gene_interactions", []):
+            gene = gi["gene"]
+            field_map = {
+                "CYP2D6": "cyp2d6_metabolizer", "CYP2C19": "cyp2c19_metabolizer",
+                "CYP3A4": "cyp3a4_metabolizer", "CYP2C9": "cyp2c9_metabolizer",
+                "CYP1A2": "cyp1a2_metabolizer", "SLCO1B1": "slco1b1_function",
+                "UGT1A1": "ugt1a1_function",
+            }
+            phenotype = genetics_dict.get(field_map.get(gene, ""), "unknown")
+            mult = get_gene_multiplier(gi, genetics_dict)
+            gene_details.append(GeneInteractionDetail(
+                gene=gene,
+                phenotype=phenotype,
+                multiplier=mult,
+                evidence=gi.get("evidence", ""),
+            ))
+
+        # Pathway chain explanation
+        pathway_chain = build_pathway_chain(comp_id, genetics_dict) or []
+
+        # Per-organ load contribution from pathway activations
+        organ_impacts: dict = {}
+        for pa in comp_kg.get("pathway_activations", []):
+            pdata = PATHWAY_GRAPH.get(pa["pathway"], {})
+            delta = pa["delta"]
+            severity = pdata.get("severity_weight", 1.0)
+            gene_mult = cd["gene_multiplier"]
+
+            for organ in pdata.get("organs", []):
+                if organ in organ_loads:
+                    contribution = delta * severity * gene_mult
+                    organ_loads[organ] += contribution
+                    organ_impacts[organ] = organ_impacts.get(organ, 0.0) + contribution
+                    if delta > 0 and pa["pathway"] not in organ_pathway_map.get(organ, []):
+                        organ_pathway_map[organ].append(pa["pathway"])
+
+        compound_gene_chains.append(CompoundGeneChain(
+            compound_id=comp_id,
+            display_name=cd["display_name"],
+            gene_interactions=gene_details,
+            pathway_chain=pathway_chain,
+            organ_impacts={o: round(v, 2) for o, v in organ_impacts.items()},
+        ))
+
+    # ── 4. Lifestyle modifiers ─────────────────────────────────────────────
+    ls = request.lifestyle
+    if ls.alcohol_drinks_per_week > 7:
+        organ_loads["liver"] += (ls.alcohol_drinks_per_week - 7) * 0.5
+    if ls.stress_level >= 7:
+        organ_loads["metabolic"] += (ls.stress_level - 6) * 1.5
+        organ_loads["cardiovascular"] += (ls.stress_level - 6) * 1.0
+    if ls.sleep_hours_avg < 6:
+        organ_loads["metabolic"] += (6 - ls.sleep_hours_avg) * 2.0
+    if ls.smoking_status == "current":
+        organ_loads["cardiovascular"] += 10.0
+        organ_loads["liver"] += 3.0
+
+    # ── 5. Lab adjustments ───────────────────────────────────────────────
+    labs = request.labs
+    if labs:
+        if labs.egfr_ml_per_min is not None and labs.egfr_ml_per_min < 60:
+            organ_loads["kidney"] += (60 - labs.egfr_ml_per_min) * 0.3
+        if labs.ldl_mg_per_dl is not None and labs.ldl_mg_per_dl > 130:
+            organ_loads["cardiovascular"] += (labs.ldl_mg_per_dl - 130) * 0.08
+        if labs.hba1c_pct is not None and labs.hba1c_pct > 5.7:
+            organ_loads["metabolic"] += (labs.hba1c_pct - 5.7) * 8.0
+        if labs.hscrp_mg_per_l is not None and labs.hscrp_mg_per_l > 1.0:
+            organ_loads["cardiovascular"] += labs.hscrp_mg_per_l * 2.0
+            organ_loads["liver"] += labs.hscrp_mg_per_l * 1.0
+
+    # ── 6. Convert loads → 0-100 health index (100 = optimal) ────────────
+    def load_to_index(organ: str, load: float) -> float:
+        # Baseline load representing a moderate lifestyle with no conditions
+        baseline_loads = {"liver": 20.0, "kidney": 15.0, "cardiovascular": 18.0, "metabolic": 16.0}
+        total = baseline_loads.get(organ, 18.0) + max(load, 0)
+        raw = max(0, 100 - total * 1.5)
+        return round(_clamp(raw, 10.0, 95.0), 1)
+
+    def risk_for(index: float) -> str:
+        if index >= 75: return "green"
+        if index >= 55: return "amber"
+        return "red"
+
+    def top_driver(organ: str) -> str:
+        # Find compound with highest impact on this organ
+        top = ("", 0.0)
+        for cgc in compound_gene_chains:
+            impact = cgc.organ_impacts.get(organ, 0.0)
+            if abs(impact) > abs(top[1]):
+                top = (cgc.display_name, impact)
+        if top[0]:
+            return top[0]
+        # Fall back to condition
+        for cd in pg.condition_data:
+            if organ in cd["organs"] and cd["organs"][organ] > 0:
+                return cd["condition_id"].replace("_", " ").title()
+        return "Lifestyle"
+
+    # Use our existing liver_index_now for liver (already calibrated)
+    organ_scores_list = [
+        OrganScore(
+            organ="liver",
+            score=liver_index_now,
+            risk_level=risk_for(liver_index_now),
+            primary_driver=top_driver("liver"),
+            active_pathways=organ_pathway_map.get("liver", [])[:4],
+            projected_5yr=max(10, liver_index_now - abs(organ_loads["liver"]) * 0.5),
+        ),
+        OrganScore(
+            organ="kidney",
+            score=load_to_index("kidney", organ_loads["kidney"]),
+            risk_level=risk_for(load_to_index("kidney", organ_loads["kidney"])),
+            primary_driver=top_driver("kidney"),
+            active_pathways=organ_pathway_map.get("kidney", [])[:4],
+            projected_5yr=load_to_index("kidney", organ_loads["kidney"] * 1.2),
+        ),
+        OrganScore(
+            organ="cardiovascular",
+            score=load_to_index("cardiovascular", organ_loads["cardiovascular"]),
+            risk_level=risk_for(load_to_index("cardiovascular", organ_loads["cardiovascular"])),
+            primary_driver=top_driver("cardiovascular"),
+            active_pathways=organ_pathway_map.get("cardiovascular", [])[:4],
+            projected_5yr=load_to_index("cardiovascular", organ_loads["cardiovascular"] * 1.15),
+        ),
+        OrganScore(
+            organ="metabolic",
+            score=load_to_index("metabolic", organ_loads["metabolic"]),
+            risk_level=risk_for(load_to_index("metabolic", organ_loads["metabolic"])),
+            primary_driver=top_driver("metabolic"),
+            active_pathways=organ_pathway_map.get("metabolic", [])[:4],
+            projected_5yr=load_to_index("metabolic", organ_loads["metabolic"] * 1.1),
+        ),
+    ]
+
+    # ── 7. DDI Flags ──────────────────────────────────────────────────────
+    raw_ddis = detect_ddis([{"compound_id": item.compound_id} for item in request.regimen])
+    ddi_flags_list = [
+        DDIFlag(
+            compound_a=d["compound_a"],
+            compound_b=d["compound_b"],
+            risk_level=d["risk_level"],
+            mechanism=d["mechanism"],
+            recommendation=d["recommendation"],
+            evidence=d.get("evidence", ""),
+        )
+        for d in raw_ddis
+    ]
+
+    # ── 8. Active pathway dedup ───────────────────────────────────────────
+    all_pathways = []
+    for pathways in organ_pathway_map.values():
+        for p in pathways:
+            if p not in all_pathways:
+                all_pathways.append(p)
+
+    return organ_scores_list, compound_gene_chains, ddi_flags_list, all_pathways
 
 
 def _build_optimized_trajectory(
@@ -516,7 +870,7 @@ def _build_optimized_trajectory(
         elif rec.id == "reduce_sugar":
             modified.lifestyle.sugar_g_per_day = 90.0
         elif rec.id == "add_nac":
-            from ..models.request import RegimenItem  # type: ignore
+            from models.request import RegimenItem
             if not any(r.compound_id == "nac" for r in modified.regimen):
                 modified.regimen.append(RegimenItem(compound_id="nac", dose_mg=600))
         elif rec.id.startswith("reduce_"):

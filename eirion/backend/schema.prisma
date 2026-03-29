@@ -1,20 +1,23 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 generator client {
   provider             = "prisma-client-py"
+  interface            = "asyncio"
   recursive_type_depth = 5
 }
 
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  auth_id    String   @unique
-  is_pro     Boolean  @default(false)
-  oura_token String?  // Optional OAuth token for Oura Ring
-  created_at DateTime @default(now())
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  full_name           String
+  hashed_password     String
+  onboarding_complete Boolean   @default(false)
+  is_pro              Boolean   @default(false)
+  oura_token          String?   // OAuth token for Oura Ring
+  created_at          DateTime  @default(now())
 
   attributes UserAttributes?
   history    TrajectoryHistory[]
@@ -24,7 +27,7 @@ model UserAttributes {
   id        String @id @default(cuid())
   user_id   String @unique
   user      User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
+
   age       Int
   sex       String
   weight_kg Float
@@ -39,7 +42,7 @@ model TrajectoryHistory {
   id         String   @id @default(cuid())
   user_id    String
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
+
   score      Int
   snapshot   String   // JSON string of the AnalysisResponse
   created_at DateTime @default(now())

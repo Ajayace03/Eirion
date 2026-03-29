@@ -9,7 +9,7 @@ Bilirubin values that map directly to the Labs Pydantic model.
 import os
 import json
 from fastapi import APIRouter, File, UploadFile, HTTPException
-from ..models.request import Labs
+from models.request import Labs
 
 router = APIRouter()
 

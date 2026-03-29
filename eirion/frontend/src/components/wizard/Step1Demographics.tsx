@@ -1,4 +1,5 @@
 import { useWizardStore } from "../../store/wizardStore";
+import { AlertTriangle } from "lucide-react";
 
 export default function Step1Demographics() {
   const { patient, updatePatient } = useWizardStore();
@@ -10,6 +11,17 @@ export default function Step1Demographics() {
         <p className="text-blue-gray-600">Let's start with your physical metrics.</p>
       </div>
 
+      <div className="max-w-xl mx-auto mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 text-amber-800">
+        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-bold mb-1">AI System Disclaimer</p>
+          <p>
+            Eirion uses experimental ML models (GNN/Tox21) to generate longevity insights. 
+            This is <strong>not medical advice</strong>. Always consult a licensed clinician before altering your regimen.
+          </p>
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-6 max-w-xl mx-auto">
         <div className="space-y-2">
           <label className="text-sm font-medium text-blue-gray-700">Age</label>
@@ -19,8 +31,9 @@ export default function Step1Demographics() {
             max="120"
             className="w-full px-4 py-3 rounded-xl border border-blue-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-all"
             value={patient.age || ""}
-            onChange={(e) => updatePatient({ age: parseInt(e.target.value) || undefined })}
+            onChange={(e) => updatePatient({ age: isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber })}
             placeholder="e.g. 35"
+            onKeyDown={(e) => ["e", "E", "+", "-", "."].includes(e.key) && e.preventDefault()}
           />
         </div>
 
@@ -46,8 +59,9 @@ export default function Step1Demographics() {
             max="300"
             className="w-full px-4 py-3 rounded-xl border border-blue-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-all"
             value={patient.weight_kg || ""}
-            onChange={(e) => updatePatient({ weight_kg: parseInt(e.target.value) || undefined })}
+            onChange={(e) => updatePatient({ weight_kg: isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber })}
             placeholder="e.g. 70"
+            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
           />
         </div>
 
@@ -59,8 +73,9 @@ export default function Step1Demographics() {
             max="250"
             className="w-full px-4 py-3 rounded-xl border border-blue-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-all"
             value={patient.height_cm || ""}
-            onChange={(e) => updatePatient({ height_cm: parseInt(e.target.value) || undefined })}
+            onChange={(e) => updatePatient({ height_cm: isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber })}
             placeholder="e.g. 170"
+            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
           />
         </div>
       </div>

@@ -53,7 +53,9 @@ class EirionPredictor:
         if os.path.exists(self.gnn_path):
             try:
                 # If it's a raw state_dict, we need the class. If it's a TorchScript or full save, it loads directly.
-                self.gnn_model = torch.load(self.gnn_path, map_location=torch.device('cpu'))
+                # weights_only=False: legacy checkpoint may be a full model object not a state_dict.
+                # When weights are retrained as a state_dict, switch to weights_only=True.
+                self.gnn_model = torch.load(self.gnn_path, map_location=torch.device('cpu'), weights_only=False)  # noqa: S614
                 if hasattr(self.gnn_model, 'eval'):
                     self.gnn_model.eval()  # type: ignore
                 print("[ML] Successfully built computation graph for eirion_gnn_best.pt")

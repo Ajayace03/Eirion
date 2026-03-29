@@ -7,8 +7,11 @@ Requires env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID
 """
 import os
 import json
+import logging
 from fastapi import APIRouter, HTTPException, Request, Header
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -40,8 +43,9 @@ async def create_checkout_session():
             cancel_url=CANCEL_URL,
         )
         return JSONResponse({"url": session.url})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+    except Exception:
+        logger.error("Stripe checkout session creation failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Payment processing unavailable.")
 
 
 @router.post("/webhook")
@@ -64,8 +68,9 @@ async def stripe_webhook(
         import stripe
         stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
         event = stripe.Webhook.construct_event(payload, stripe_signature, webhook_secret)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Webhook error: {str(e)}")
+    except Exception:
+        logger.error("Stripe webhook verification failed", exc_info=True)
+        raise HTTPException(status_code=400, detail="Webhook verification failed.")
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]

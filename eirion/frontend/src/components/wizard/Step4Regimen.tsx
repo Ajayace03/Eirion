@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWizardStore } from "../../store/wizardStore";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, AlertTriangle } from "lucide-react";
 
 // Mocking the knowledge tables from the backend for the frontend UI
 const AVAILABLE_COMPOUNDS = [
@@ -22,8 +22,20 @@ const AVAILABLE_COMPOUNDS = [
 ];
 
 export default function Step4Regimen() {
-  const { regimen, addCompound, removeCompound, updateCompound } = useWizardStore();
+  const { regimen, addCompound, removeCompound, updateCompound, genetics } = useWizardStore();
   const [selectedId, setSelectedId] = useState("");
+  const isPoorCYP2D6 = genetics.cyp2d6_metabolizer === "poor";
+
+  const CYP2D6_SUBSTRATES = new Set(
+    AVAILABLE_COMPOUNDS.filter((c) =>
+      ["ashwagandha", "berberine", "sertraline", "escitalopram"].includes(c.id)
+    ).map((c) => c.id)
+  );
+
+  // Find any CYP2D6 substrates currently in regimen
+  const cyp2d6Conflicts = isPoorCYP2D6
+    ? regimen.filter((r) => CYP2D6_SUBSTRATES.has(r.compound_id))
+    : [];
 
   const handleAdd = () => {
     if (!selectedId) return;
@@ -80,6 +92,21 @@ export default function Step4Regimen() {
             <Plus className="w-5 h-5" /> Add
           </button>
         </div>
+
+        {/* CYP2D6 Interaction Warning */}
+        {cyp2d6Conflicts.length > 0 && (
+          <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-amber-800">CYP2D6 Interaction Detected</p>
+              <p className="text-sm text-amber-700 mt-1">
+                As a <strong>poor CYP2D6 metabolizer</strong>, you clear{" "}
+                {cyp2d6Conflicts.map((r) => getCompoundName(r.compound_id)).join(" and ")} ~50% slower.
+                This significantly increases hepatic load. Review the recommendations on your blueprint.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Current Stack List */}
         <div className="space-y-3">

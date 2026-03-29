@@ -1,0 +1,97 @@
+# ─── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.env.*
+!.env.example
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ─── ML / Model weights ─────────────────────────────────────────────────────────
+# Trained weights go here — track only the zip archive via Git LFS if needed
+eirion/backend/engine/weights/*.pt
+eirion/backend/engine/weights/*.pkl
+eirion/backend/engine/weights/*.bin
+eirion/backend/engine/weights/*.onnx
+# The base model archive is large — add to Git LFS:
+eirion/model-base.zip
+
+# ─── Node / Frontend ────────────────────────────────────────────────────────────
+node_modules/
+eirion/frontend/node_modules/
+eirion/frontend/dist/
+eirion/frontend/.vite/
+*.local
+
+# ─── Database ───────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+eirion/backend/dev.db
+eirion/backend/prisma/migrations/*.sql
+# (keep schema.prisma tracked)
+
+# ─── IDE / OS ───────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Logs & temp ────────────────────────────────────────────────────────────────
+*.log
+logs/
+*.tmp
+*.temp
+.cache/
+
+# ─── Secrets ────────────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+secrets/
+credentials/
+
+# ─── Ruff / type checking cache ─────────────────────────────────────────────────
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.pyre/
+
+# ─── Coverage ───────────────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ─── Keep these tracked ─────────────────────────────────────────────────────────
+!.env.example
+!eirion/backend/engine/weights/.gitkeep
+
+# ─── Loose planning / working files (parent workspace) ──────────────────────────
+# These are architect/design artefacts, not part of the deployable repo.
+# If you want to track them, move them into eirion/docs/ and remove from here.
+ARCHITECTURE.jpeg
+ARCHITECTURE.png
+FULL PROCESS.jpeg
+FULL_PROCESS.jpeg
+Graph_attention_Network.jpeg
+GNN_README.md
+MODELS.md
+docs/
+23andme.txt
+*.txt
+# Old versioned READMEs — filename contains parentheses and spaces
+README (*.md
