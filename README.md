@@ -38,7 +38,7 @@ EIRION's engine computes:
 
 <div align="center">
 
-![Platform Architecture](images/ARCHITECTURE.png)
+![Platform Architecture](docs/images/ARCHITECTURE.png)
 
 *End-to-end architecture: 9-step onboarding wizard → dual-engine inference → multi-organ scorecard dashboard*
 
