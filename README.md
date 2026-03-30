@@ -482,6 +482,6 @@ MIT — see [LICENSE](LICENSE)
 <div align="center">
 
 *EIRION — "Predict before it's too late. Personalise to your biology."*  
-**ETGen AI Hackathon 2026 · Team Ajaya Kumar**
+**ETGen AI Hackathon 2026 · Team**
 
 </div>
